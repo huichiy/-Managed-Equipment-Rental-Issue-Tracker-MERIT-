@@ -95,6 +95,8 @@ net     = base − discount + penalty
 - **密码明文存储**(academic scope,非安全实现)。
 - **首次运行时以代码 seed 数据库**,保证 demo 有数据。
 - **penalty 由 category 决定**(见 Part 2 说明),不设独立的 `penalty_policy` 列。
+- **设备按库存数量管理**:每件设备有 `total_quantity`(总库存)与 `available_quantity`(当前可租)。`available_quantity > 0` 才可租、才出现在目录。admin 新增设备时设定初始数量,并可事后 restock 调整总量。此设计取代了早期的布尔 `available`(等价于 `available_quantity > 0`)。
+- **一次可租多件**:租借时可选数量 `K`(UI 的 Quantity spinner 上限自动等于该设备 `available_quantity`,选不超)。租出 `available −= K`、归还 `+= K`(不超过总库存);账单的 `base` 与 `penalty` 均 `× K`,`discount` 仍只作用于 base。`rentals` 与 `bills` 各存一列 `quantity`。
 
 ---
 
@@ -124,7 +126,8 @@ net     = base − discount + penalty
 | `daily_rate` | REAL | NOT NULL | 日租金(RM) |
 | `replacement_value` | REAL | NOT NULL | 重置价值(RM),用于损坏罚金计算 |
 | `pricing_policy` | TEXT | NOT NULL | `STANDARD` \| `PROMOTIONAL`;**Bridge 的独立轴** |
-| `available` | INTEGER | DEFAULT 1 | 1 = 可租,0 = 已租出 |
+| `total_quantity` | INTEGER | NOT NULL DEFAULT 0 | 库存总数(admin 设定 / restock) |
+| `available_quantity` | INTEGER | NOT NULL DEFAULT 0 | 当前可租数量;租出 −1,归还 +1;目录只列 `> 0` 的项 |
 
 > **设计说明(面试可讲):** `category` 在 DAO 重建对象时映射到对应 `Equipment` 子类,并附带该类的默认 `PenaltyPolicy`;`pricing_policy` 则独立映射到 `PricingPolicy`。这是全系统**唯一按 category 分支**的地方(DAO 重建工厂),业务逻辑中无此类 switch。penalty 未单列字段,因其由 category 决定。
 
@@ -136,6 +139,7 @@ net     = base − discount + penalty
 | `user_id` | TEXT | NOT NULL, **FK → users(user_id)** | 租借人 |
 | `equipment_id` | TEXT | NOT NULL, **FK → equipment(equipment_id)** | 所租设备 |
 | `rental_days` | INTEGER | NOT NULL | 租借天数(1–30) |
+| `quantity` | INTEGER | NOT NULL DEFAULT 1 | 本次租借的件数(`1 ≤ K ≤` 该设备 `available_quantity`) |
 | `rent_date` | TEXT | NOT NULL | 起租日期(ISO) |
 | `due_date` | TEXT | NOT NULL | 应还日期(ISO) |
 | `return_date` | TEXT | 可空 | 实际归还日期;未还为 NULL |
@@ -149,7 +153,8 @@ net     = base − discount + penalty
 |--------|------|-------------|-------------|
 | `bill_id` | TEXT | **PK** | 账单标识 |
 | `rental_id` | TEXT | NOT NULL, **FK → rentals(rental_id)** | 对应租借 |
-| `base_fee` | REAL | NOT NULL | 基础租金 |
+| `quantity` | INTEGER | NOT NULL DEFAULT 1 | 件数(冗余自 rental,便于账单独立显示) |
+| `base_fee` | REAL | NOT NULL | 基础租金(已 × 数量) |
 | `discount` | REAL | NOT NULL | 折扣额(只基于 base) |
 | `penalty` | REAL | NOT NULL | 罚金额(逾期 + 损坏) |
 | `net_payable` | REAL | NOT NULL | 应付净额 = base − discount + penalty |
@@ -166,19 +171,19 @@ net     = base − discount + penalty
 
 ### 3.1 设备(8 项,覆盖三类;含 1 个 promotional、1 个已租出用于展示 availability)
 
-| equipment_id | name | category | daily_rate | replacement_value | pricing_policy | available |
-|--------------|------|----------|-----------|-------------------|----------------|-----------|
-| E001 | Laptop | ELECTRONICS | 15.00 | 2500.00 | STANDARD | 1 |
-| E002 | Tablet | ELECTRONICS | 10.00 | 1500.00 | **PROMOTIONAL** | 1 |
-| M001 | DSLR Camera | MEDIA | 30.00 | 3500.00 | STANDARD | 1 |
-| M002 | Projector | MEDIA | 25.00 | 2000.00 | STANDARD | 0 |
-| M003 | Microphone | MEDIA | 10.00 | 400.00 | STANDARD | 1 |
-| M004 | Tripod | MEDIA | 5.00 | 200.00 | STANDARD | 1 |
-| L001 | Microscope | LAB | 40.00 | 5000.00 | STANDARD | 1 |
-| L002 | Oscilloscope | LAB | 50.00 | 8000.00 | STANDARD | 1 |
+| equipment_id | name | category | daily_rate | replacement_value | pricing_policy | total_quantity | available_quantity |
+|--------------|------|----------|-----------|-------------------|----------------|----------------|--------------------|
+| E001 | Laptop | ELECTRONICS | 15.00 | 2500.00 | STANDARD | 5 | 5 |
+| E002 | Tablet | ELECTRONICS | 10.00 | 1500.00 | **PROMOTIONAL** | 3 | 3 |
+| M001 | DSLR Camera | MEDIA | 30.00 | 3500.00 | STANDARD | 2 | 2 |
+| M002 | Projector | MEDIA | 25.00 | 2000.00 | STANDARD | 2 | 0 |
+| M003 | Microphone | MEDIA | 10.00 | 400.00 | STANDARD | 4 | 4 |
+| M004 | Tripod | MEDIA | 5.00 | 200.00 | STANDARD | 6 | 6 |
+| L001 | Microscope | LAB | 40.00 | 5000.00 | STANDARD | 2 | 2 |
+| L002 | Oscilloscope | LAB | 50.00 | 8000.00 | STANDARD | 1 | 1 |
 
 > **为什么 E002 设为 PROMOTIONAL:** demo 时租它可展示 20% 折扣,也证明 pricing 独立于 category。
-> **为什么 M002 设为 available=0:** 展示 availability status 生效(目录只列可租项)。
+> **为什么 M002 设为 available_quantity=0(库存 2 但 0 可租):** 展示库存耗尽的设备不出现在租借目录里(目录只列 `available_quantity > 0`)。
 
 ### 3.2 账户(4 个,覆盖所有角色)
 
