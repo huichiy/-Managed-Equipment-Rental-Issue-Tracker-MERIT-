@@ -78,7 +78,8 @@ public final class Database {
                     + "username   TEXT UNIQUE NOT NULL, "
                     + "password   TEXT NOT NULL, "
                     + "name       TEXT NOT NULL, "
-                    + "role       TEXT NOT NULL)");
+                    + "role       TEXT NOT NULL, "
+                    + "final_year INTEGER NOT NULL DEFAULT 0)");
 
             st.execute("CREATE TABLE IF NOT EXISTS equipment ("
                     + "equipment_id       TEXT PRIMARY KEY, "
@@ -167,14 +168,15 @@ public final class Database {
     }
 
     private static void seedUsers() throws SQLException {
-        // user_id, username, password, name, role
+        // user_id, username, password, name, role, final_year (1 = final-year student → 10% discount)
         Object[][] rows = {
-                {"U001", "admin", "admin", "Facilities Admin", "ADMIN"},
-                {"U002", "staff", "staff", "Dr. Tan", "STAFF"},
-                {"U003", "student", "student", "Regular Student", "STUDENT"},
+                {"U001", "admin", "admin", "Facilities Admin", "ADMIN", 0},
+                {"U002", "staff", "staff", "Dr. Tan", "STAFF", 0},
+                {"U003", "student", "student", "Regular Student", "STUDENT", 0},
+                {"U004", "finalyear", "finalyear", "Final-Year Student", "STUDENT", 1},
         };
-        String sql = "INSERT INTO users (user_id, username, password, name, role) "
-                + "VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO users (user_id, username, password, name, role, final_year) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             for (Object[] r : rows) {
                 ps.setString(1, (String) r[0]);
@@ -182,6 +184,7 @@ public final class Database {
                 ps.setString(3, (String) r[2]);
                 ps.setString(4, (String) r[3]);
                 ps.setString(5, (String) r[4]);
+                ps.setInt(6, (Integer) r[5]);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -192,7 +195,7 @@ public final class Database {
      * Manual verification entry point (needs the jar on the classpath):
      * <pre>java -cp "bin;lib/sqlite-jdbc.jar" merit.dao.Database</pre>
      * Prints the row counts so you can confirm the seed ran and is idempotent
-     * (run it twice — the counts must stay 8 / 3).
+     * (run it twice — the counts must stay 8 / 4).
      */
     public static void main(String[] args) throws SQLException {
         Connection c = getConnection();

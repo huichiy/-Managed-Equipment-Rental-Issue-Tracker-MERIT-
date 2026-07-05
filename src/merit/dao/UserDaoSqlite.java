@@ -73,7 +73,7 @@ public class UserDaoSqlite implements UserDao {
         return switch (role) {
             case "ADMIN" -> new Admin(id, username, password, name);
             case "STAFF" -> new Staff(id, username, password, name);
-            case "STUDENT" -> new Student(id, username, password, name);
+            case "STUDENT" -> new Student(id, username, password, name, rs.getInt("final_year") == 1);
             default -> throw new IllegalStateException("Unknown role: " + role);
         };
     }
