@@ -57,8 +57,7 @@ On first run `merit.dao.Database` creates `db/merit.db`, builds the 4 tables, an
 |----------|------|----------|----------|
 | `admin` | ADMIN | — | Admin catalog panel |
 | `staff` | STAFF | 20% | Rental flow |
-| `student` | STUDENT (regular) | 0% | Rental flow |
-| `finalyear` | STUDENT (final-year) | 10% | Rental flow |
+| `student` | STUDENT | 0% | Rental flow |
 
 ### Demo happy-path
 

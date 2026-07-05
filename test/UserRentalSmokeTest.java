@@ -55,12 +55,10 @@ public class UserRentalSmokeTest {
         // --- polymorphic discount ---
         assertEquals("Admin discount", 0.00, new Admin("U001", "admin", "admin", "Admin").getDiscountRate());
         assertEquals("Staff discount", 0.20, new Staff("U002", "staff", "staff", "Dr. Tan").getDiscountRate());
-        assertEquals("regular Student discount", 0.00,
-                new Student("U003", "student", "student", "Reg", false).getDiscountRate());
-        assertEquals("final-year Student discount", 0.10,
-                new Student("U004", "finalyear", "finalyear", "Fin", true).getDiscountRate());
+        assertEquals("Student discount", 0.00,
+                new Student("U003", "student", "student", "Reg").getDiscountRate());
 
-        User student = new Student("U003", "student", "student", "Reg", false);
+        User student = new Student("U003", "student", "student", "Reg");
         FakeEquipmentDao eqDao = new FakeEquipmentDao();
         FakeRentalDao rentalDao = new FakeRentalDao();
         RentalManager mgr = new RentalManager(rentalDao, eqDao);

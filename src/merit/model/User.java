@@ -8,7 +8,7 @@ package merit.model;
  * (the polymorphic discount) and the identity getters.
  *
  * <p>Member B will add the {@code Admin} / {@code Staff} / {@code Student} subclasses
- * (each returning {@code 0 / 0.20 / (finalYear ? 0.10 : 0)}) and the {@code UserDao}
+ * (each returning {@code 0 / 0.20 / 0}) and the {@code UserDao}
  * mapping. <b>Do not change {@link #getDiscountRate()}'s signature</b> — C's billing
  * depends on it.
  */

@@ -18,8 +18,7 @@
 |------|------|----------|
 | Admin | Campus Facilities 操作员,管理设备目录、处理归还 | 不适用(不租借) |
 | Staff | 学术/行政职员 | 20% |
-| Student(regular) | 普通在册学生 | 0% |
-| Student(final-year) | 毕业年学生 | 10% |
+| Student | 在册学生 | 0% |
 
 **Justify:** 登录后按 role 路由到不同界面(Admin → 管理界面;Staff/Student → 租借界面)。登录是**角色访问控制**的手段,非安全功能;明文密码为 academic scope 的已知取舍。
 
@@ -42,8 +41,7 @@
 
 | User type | Discount | Applied to |
 |-----------|----------|------------|
-| Regular student | 0% | — |
-| Final-year student | 10% | **Base rental fee** |
+| Student | 0% | — |
 | Staff | 20% | **Base rental fee** |
 
 **⚠️ 计费要点:** 折扣**只打在 base 上,不打在 penalty 上**。对应公式 `net = base − discount + penalty`——`discount = base × rate`,penalty 原样加。别写成 `(base+penalty) × rate`。
@@ -114,7 +112,6 @@ net     = base − discount + penalty
 | `password` | TEXT | NOT NULL | 明文密码(academic scope) |
 | `name` | TEXT | NOT NULL | 姓名 |
 | `role` | TEXT | NOT NULL | `ADMIN` \| `STAFF` \| `STUDENT` |
-| `final_year` | INTEGER | DEFAULT 0 | 1 = 毕业年学生(享 10% 折扣);仅对 STUDENT 有意义 |
 
 ### 2.2 `equipment`
 
@@ -185,14 +182,13 @@ net     = base − discount + penalty
 > **为什么 E002 设为 PROMOTIONAL:** demo 时租它可展示 20% 折扣,也证明 pricing 独立于 category。
 > **为什么 M002 设为 available_quantity=0(库存 2 但 0 可租):** 展示库存耗尽的设备不出现在租借目录里(目录只列 `available_quantity > 0`)。
 
-### 3.2 账户(4 个,覆盖所有角色)
+### 3.2 账户(3 个,覆盖所有角色)
 
-| user_id | username | password | name | role | final_year |
-|---------|----------|----------|------|------|-----------|
-| U001 | admin | admin | Facilities Admin | ADMIN | 0 |
-| U002 | staff | staff | Dr. Tan | STAFF | 0 |
-| U003 | student | student | Regular Student | STUDENT | 0 |
-| U004 | finalyear | finalyear | Final-Year Student | STUDENT | 1 |
+| user_id | username | password | name | role |
+|---------|----------|----------|------|------|
+| U001 | admin | admin | Facilities Admin | ADMIN |
+| U002 | staff | staff | Dr. Tan | STAFF |
+| U003 | student | student | Regular Student | STUDENT |
 
 ---
 

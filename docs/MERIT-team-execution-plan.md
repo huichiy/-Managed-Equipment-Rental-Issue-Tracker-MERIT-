@@ -56,7 +56,7 @@
 ### Member B — Users, Auth & Rentals
 
 **代码(`merit.model` 的 User*/Rental · `merit.service` 的 Auth/RentalManager · `merit.dao` 的 User/Rental):**
-- `User` 抽象 + `Admin` / `Staff` / `Student`,`getDiscountRate()` 返回 `0 / 0.20 / (finalYear?0.10:0)`。
+- `User` 抽象 + `Admin` / `Staff` / `Student`,`getDiscountRate()` 返回 `0 / 0.20 / 0`。
 - `AuthService.login(username, password)` → `User`(经 `UserDao`)。
 - `Rental`(**聚合** User + Equipment;算 dueDate、daysLate)。
 - `RentalManager.rent(...)` / `.returnEquipment(...)`,切换 availability。
@@ -141,7 +141,7 @@
 
 - **4 个 feature 对齐 20 分**:设备+租借管理(D 的 admin + B 的 rent/return)、fee/discount/penalty(A+B+C)、逐条账单(C)、可用 Swing UI(D)。四个都要真能跑。
 - **账单公式**:`net = base − discount + penalty`,UI 上要分行显示 base / discount / penalty / net(rubric 明确要"detailed billing")。
-- **seed 数据**:每类 2–3 个、共 6+ 个设备,**含至少 1 个 promotional 项**(好演示折扣);账户 = 1 Admin + 1 Staff + 1 final-year Student + 1 普通 Student。
+- **seed 数据**:每类 2–3 个、共 6+ 个设备,**含至少 1 个 promotional 项**(好演示折扣);账户 = 1 Admin + 1 Staff + 1 Student。
 - **`double` 存钱是常见面试 gotcha**:准备一句"本 scope 用 double + 显示时四舍五入可接受,生产会用 BigDecimal 避免浮点误差"。
 - **demo happy-path**(联调和面试都走这条):学生登录 → 租一个 promotional Electronics(看到 8 折)→ 逾期 2 天且损坏归还(看到 Electronics 损坏加价)→ 逐条账单显示 base/discount/penalty/net;管理员登录 → 加设备 → 出现在目录。
 

@@ -47,12 +47,7 @@ public class BillGeneratorSmokeTest {
         assertEquals("staff penalty unchanged by discount", 610.00, b2.getPenalty());
         assertEquals("staff net (112 - 22.40 + 610)", 699.60, b2.getNetPayable());
 
-        // Case 3: final-year student (10%) → net 710.80.
-        Bill b3 = gen.generate(rental("R003", new FakeUser("U004", 0.10), tablet));
-        assertEquals("final-year discount (112*0.10)", 11.20, b3.getDiscount());
-        assertEquals("final-year net (112 - 11.20 + 610)", 710.80, b3.getNetPayable());
-
-        // Case 4: quantity 2 scales base and penalty (regular student, 0%).
+        // Case 3: quantity 2 scales base and penalty (regular student, 0%).
         Rental multi = new Rental("R004", new FakeUser("U003", 0.00), tablet, 14, null, 2);
         multi.setDaysLate(2);
         multi.setDamaged(true);
