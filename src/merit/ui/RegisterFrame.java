@@ -22,7 +22,10 @@ import merit.model.User;
  * {@link User} subtype and the DAO assigns the {@code user_id}.
  *
  * <p>Only Staff and Student can self-register — Admin accounts are seeded. The
- * "Final-year Student" choice maps to a {@code Student} with the 10% discount flag.
+ * "Final-year Student" choice maps to a {@code Student} with the 10% discount flag,
+ * but the service only accepts it when the entered student ID is in the final-year
+ * batch (see {@link merit.model.StudentId}); otherwise registration is rejected and
+ * the user corrects the form.
  */
 public class RegisterFrame extends JFrame {
 
@@ -35,6 +38,7 @@ public class RegisterFrame extends JFrame {
     private final JTextField nameField = new JTextField(16);
     private final JTextField usernameField = new JTextField(16);
     private final JPasswordField passwordField = new JPasswordField(16);
+    private final JTextField studentIdField = new JTextField(16);
     private final JComboBox<String> roleBox =
             new JComboBox<>(new String[] {STUDENT, FINAL_YEAR, STAFF});
 
@@ -42,7 +46,7 @@ public class RegisterFrame extends JFrame {
         this.services = services;
         setTitle("MERIT — Register");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(400, 260);
+        setSize(420, 300);
         setLocationRelativeTo(null);
         setContentPane(buildUi());
     }
@@ -59,15 +63,17 @@ public class RegisterFrame extends JFrame {
         c.gridx = 1; c.gridy = 1; panel.add(usernameField, c);
         c.gridx = 0; c.gridy = 2; panel.add(new JLabel("Password:"), c);
         c.gridx = 1; c.gridy = 2; panel.add(passwordField, c);
-        c.gridx = 0; c.gridy = 3; panel.add(new JLabel("Role:"), c);
-        c.gridx = 1; c.gridy = 3; panel.add(roleBox, c);
+        c.gridx = 0; c.gridy = 3; panel.add(new JLabel("Student ID:"), c);
+        c.gridx = 1; c.gridy = 3; panel.add(studentIdField, c);
+        c.gridx = 0; c.gridy = 4; panel.add(new JLabel("Role:"), c);
+        c.gridx = 1; c.gridy = 4; panel.add(roleBox, c);
 
         JButton register = new JButton("Register");
         register.addActionListener(e -> attemptRegister());
         JButton back = new JButton("Back");
         back.addActionListener(e -> backToLogin());
-        c.gridx = 0; c.gridy = 4; panel.add(back, c);
-        c.gridx = 1; c.gridy = 4; panel.add(register, c);
+        c.gridx = 0; c.gridy = 5; panel.add(back, c);
+        c.gridx = 1; c.gridy = 5; panel.add(register, c);
 
         getRootPane().setDefaultButton(register);
         return panel;
@@ -77,6 +83,7 @@ public class RegisterFrame extends JFrame {
         String name = nameField.getText().trim();
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
+        String studentId = studentIdField.getText().trim();
         String choice = (String) roleBox.getSelectedItem();
 
         if (name.isEmpty() || username.isEmpty() || password.isEmpty()) {
@@ -88,7 +95,15 @@ public class RegisterFrame extends JFrame {
         String role = STAFF.equals(choice) ? "STAFF" : "STUDENT";
         boolean finalYear = FINAL_YEAR.equals(choice);
 
-        User created = services.authService.register(username, password, name, role, finalYear);
+        User created;
+        try {
+            created = services.authService.register(username, password, name, studentId, role, finalYear);
+        } catch (IllegalArgumentException ex) {
+            // Invalid / mismatched student ID — keep the form open so they can fill it again.
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    "Check your details", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (created == null) {
             JOptionPane.showMessageDialog(this, "That username is already taken.",
                     "Registration failed", JOptionPane.ERROR_MESSAGE);
