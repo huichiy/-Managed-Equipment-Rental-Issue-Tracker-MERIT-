@@ -50,8 +50,17 @@ public class LoginFrame extends JFrame {
         login.addActionListener(e -> attemptLogin());
         c.gridx = 1; c.gridy = 2; panel.add(login, c);
 
+        JButton register = new JButton("Register");
+        register.addActionListener(e -> openRegister());
+        c.gridx = 0; c.gridy = 2; panel.add(register, c);
+
         getRootPane().setDefaultButton(login);
         return panel;
+    }
+
+    private void openRegister() {
+        new RegisterFrame(services).setVisible(true);
+        dispose();
     }
 
     private void attemptLogin() {

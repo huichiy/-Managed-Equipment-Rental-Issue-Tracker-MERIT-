@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +51,48 @@ public class UserDaoSqlite implements UserDao {
             throw new RuntimeException("Failed to load users", e);
         }
         return result;
+    }
+
+    @Override
+    public void insert(User user) {
+        String sql = "INSERT INTO users (user_id, username, password, name, role, final_year) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, nextUserId());
+            ps.setString(2, user.getUsername());
+            ps.setString(3, user.getPassword());
+            ps.setString(4, user.getName());
+            ps.setString(5, roleCode(user));
+            ps.setInt(6, (user instanceof Student s && s.isFinalYear()) ? 1 : 0);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to register user: " + user.getUsername(), e);
+        }
+    }
+
+    /** Next {@code U###} id, continuing the seeded sequence (U001, U002, ...). */
+    private String nextUserId() throws SQLException {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTR(user_id, 2) AS INTEGER)), 0) "
+                + "FROM users WHERE user_id LIKE 'U%'";
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            int next = rs.next() ? rs.getInt(1) + 1 : 1;
+            return String.format("U%03d", next);
+        }
+    }
+
+    /** Map a {@link User} subtype → its {@code role} column value (the write-side mirror of {@link #reconstruct}). */
+    private String roleCode(User user) {
+        if (user instanceof Admin) {
+            return "ADMIN";
+        }
+        if (user instanceof Staff) {
+            return "STAFF";
+        }
+        if (user instanceof Student) {
+            return "STUDENT";
+        }
+        throw new IllegalArgumentException("Unknown user type: " + user.getClass().getName());
     }
 
     private User queryOne(String sql, String param) {
