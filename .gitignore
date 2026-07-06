@@ -41,3 +41,12 @@ nbproject/private/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local scratch / non-submission files (kept locally, out of the repo)
+Ignore/
+
+# Generated SQLite database (recreated from Database.java on run)
+db/
+
+# Build output
+bin/
